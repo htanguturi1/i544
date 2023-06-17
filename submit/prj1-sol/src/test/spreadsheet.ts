@@ -24,28 +24,28 @@ describe('spreadsheet', function() {
     expect(evalResult.val).to.deep.equal({ a1: -5 });
   });
 
-  it ('must evaluate a formula with a single reference', async () => {
+  it('must evaluate a formula with a single reference', async () => {
     await spreadsheet.eval('a1', '22');
     const evalResult = await spreadsheet.eval('a2', 'a1');
     assert(evalResult.isOk === true);
     expect(evalResult.val).to.deep.equal({ a2: 22 });
   });
 
-  it ('must evaluate a reference formula', async () => {
+  it('must evaluate a reference formula', async () => {
     await spreadsheet.eval('a1', '22');
     const evalResult = await spreadsheet.eval('a2', 'a1 * a1 + a1');
     assert(evalResult.isOk === true);
     expect(evalResult.val).to.deep.equal({ a2: 22*22 + 22 });
   });
 
-  it ('must evaluate an undefined cell as 0', async () => {
+  it('must evaluate an undefined cell as 0', async () => {
     await spreadsheet.eval('a1', '22');
     const evalResult = await spreadsheet.eval('a2', 'a1 * b1');
     assert(evalResult.isOk === true);
     expect(evalResult.val).to.deep.equal({ a2: 0 });
   });
 
-  it ('must cascade an update', async () => {
+  it('must cascade an update', async () => {
     await spreadsheet.eval('a1', '22');
     await spreadsheet.eval('a2', 'a1 * b1');
     const evalResult = await spreadsheet.eval('b1', '3');
