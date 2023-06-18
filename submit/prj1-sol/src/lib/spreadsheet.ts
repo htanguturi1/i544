@@ -38,31 +38,29 @@ export class Spreadsheet {
   async eval(cellId: string, expr: string) : Promise<Result<Updates>> {
     //TODO
     let ast = parseExpr(expr,cellId)
-    //////console.log(ast)
+   
     let evalResult:any
     if(!ast.isOk)
     {
       return errResult('expected syntax error',ast.errors[0].options.code)
     }
-    //////console.log(this.getCellVariables(expr))
+   
     let cellDependents: Set<string> = new Set<string>()
     cellDependents=this.getCellVariables(expr)
 
     let cellVar=this.getCellVariables(expr)
     if(cellVar.has(cellId)){
-      //////console.log(this.getCellVariables(expr))
+   
       return errResult('expected direct circular reference','CIRCULAR_REF')
 
     }
     for(const vari of cellVar)
     
     {
-      console.log('dependents of ' + vari)
+      
       if(this.mastercell[cellId] != null && 
          this.mastercell[cellId].dependents.length > 0)
       {
-        // console.log(this.mastercell[vari].dependents)
-        //console.log(vari)
       let bol=this.compareExp(vari,this.mastercell[cellId].dependents)
       if(bol)
       {
@@ -71,7 +69,6 @@ export class Spreadsheet {
     }
     }
     
-    //////console.log(cellDependents)
     for (const item of cellDependents) {
      if(this.mastercell[item]==null){
       let newMaster:masterCellInfo={
@@ -83,12 +80,11 @@ export class Spreadsheet {
     }
     this.mastercell[item].dependents.push(cellId)
     }
-   //////console.log(JSON.stringify(this.mastercell))
 
     if(ast.isOk){
-      // ////console.log(ast.val)
+      
       evalResult=this.evaluateAst(cellId,ast.val)
-      // ////console.log(evalResult)
+
     }
     if(this.mastercell[cellId]==null){
     let newMaster:masterCellInfo={
@@ -105,7 +101,7 @@ export class Spreadsheet {
     let newCelldependents = new Array<String>()
     newCelldependents= this.mastercell[cellId].dependents
     let updatedDeps=this.evalDependents(newCelldependents)
-    // ////console.log(JSON.stringify(this.mastercell))
+    
    
    let json_obj :{[key:string]:any} = {
      [cellId] : evalResult
@@ -114,7 +110,7 @@ export class Spreadsheet {
     for(const dep of updatedDeps){
       json_obj={...json_obj,[dep]:this.mastercell[dep].value}
     }
-  ////console.log(json_obj)
+  
     return okResult(json_obj); //initial dummy result
   
   }
@@ -123,8 +119,6 @@ export class Spreadsheet {
     for(const depCheck of depds){
       if(vari===depCheck.toString())
       return true
-      //console.log(depCheck)
-      //console.log(this.mastercell[depCheck.toString()])
      if( this.mastercell[depCheck.toString()].dependents!=null && this.mastercell[depCheck.toString()].dependents.length > 0)
      {
       match=this.compareExp(vari,this.mastercell[depCheck.toString()].dependents)
@@ -138,18 +132,16 @@ export class Spreadsheet {
     evalDependents(newCelldependents:Array<String>) :string[]
     {
       let changedDeps:string[]=[]
-      ////console.log(newCelldependents)
       if(newCelldependents.length>0)
       {
         for(const  dep of newCelldependents)
         {
-          ////console.log(dep)
+          
           let expression=this.mastercell[dep.toString()].expr
           let ast = parseExpr(expression,dep.toString())
-          ////console.log(ast)
+          
           if (ast.isOk) {
             let value=this.evaluateAst(dep.toString(), ast.val);
-            ////console.log(dep + '= ' + value.toString());
             this.mastercell[dep.toString()].value=value
             changedDeps.push(dep.toString())
             if(this.mastercell[dep.toString()].dependents.length>0)
@@ -184,7 +176,6 @@ export class Spreadsheet {
       else if(astValue.kind ==='app')
       {
         
-        // ////console.log(astValue)
         
        let fn = astValue.fn
      
