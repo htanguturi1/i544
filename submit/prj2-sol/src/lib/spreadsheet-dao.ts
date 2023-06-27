@@ -16,70 +16,128 @@ makeSpreadsheetDao(mongodbUrl: string, ssName: string)
 {
   return SpreadsheetDao.make(mongodbUrl, ssName);
 }
-
+type DbUser={_id?: mongo.ObjectId}
 export class SpreadsheetDao {
+  private client: mongo.MongoClient;
+  private dbUrl:string
+  private ssName: string;
+  private cellInfo: mongo.Collection;
 
-  //TODO: add properties as necessary
+  
+  constructor(params: { [key: string]: any }) {
+    this.client = params.client;
+    this.ssName = params.ssName;
+    this.dbUrl=params.dbUrl;
+    this.cellInfo = params.cellInfo;
+  }  
   
   //factory method
   static async make(dbUrl: string, ssName: string)
     : Promise<Result<SpreadsheetDao>>
-  {
-    //TODO
-    return okResult(new SpreadsheetDao());
+  {const params: { [key: string]: any } = {};
+  try {
+    params.client = await (new mongo.MongoClient(dbUrl)).connect();
+      const db = params.client.db();
+      const cells= db.collection(CELL_COLLECTION);
+      params.cellInfo = cells;
+      await cells.createIndex('cellId');
+      await cells.createIndex('ssName');
+      params.dbUrl=dbUrl
+      params.ssName = ssName;
+      return okResult(new SpreadsheetDao(params));
+  }catch (error) {
+    return errResult(error.message, 'DB');
+    }
+  
   }
 
   /** Release all resources held by persistent spreadsheet.
    *  Specifically, close any database connections.
    */
   async close() : Promise<Result<undefined>> {
-    //TODO
-    return okResult(undefined);
+    try {
+      await this.client.close();
+      return okResult(undefined);
+    }
+    catch (e) {
+      return errResult(e.message, 'DB');
+    }
   }
 
   /** return name of this spreadsheet */
   getSpreadsheetName() : string {
-    //TODO
-    return 'TODO';
+  
+    return this.ssName;
   }
 
   /** Set cell with id cellId to string expr. */
   async setCellExpr(cellId: string, expr: string)
     : Promise<Result<undefined>>
   {
-    //TODO
+    try {
+      const collection =this.cellInfo
+      await collection.insertOne({cellId,expr})
+    } catch (error) {
+      return errResult('DB', error);
+    }
     return okResult(undefined);
   }
 
   /** Return expr for cell cellId; return '' for an empty/unknown cell.
    */
   async query(cellId: string) : Promise<Result<string>> {
-    //TODO
-    return okResult('TODO');
+    try {
+      
+      const collection = this.cellInfo;
+      const document = await collection.findOne({ cellId });
+      const expr = document ? document.expr : '';
+      return okResult(expr);
+    }
+    catch (e) {
+      return errResult(e.message, 'DB');
+    }
   }
 
   /** Clear contents of this spreadsheet */
   async clear() : Promise<Result<undefined>> {
-    //TODO
-    return okResult(undefined);
+    try {
+    
+      await this.cellInfo.deleteMany({});
+      return okResult(undefined);
+    } catch (error) {
+      return errResult('DB', error);
+    }
   }
 
   /** Remove all info for cellId from this spreadsheet. */
   async remove(cellId: string) : Promise<Result<undefined>> {
-    //TODO
-    return okResult(undefined);
+    try {
+      const collection = this.cellInfo;
+      await collection.deleteOne({cellId});
+	    return okResult(undefined);
+  
+    }
+    catch (e) {
+      return errResult(e.message, 'DB');
+    }
   }
 
   /** Return array of [ cellId, expr ] pairs for all cells in this
    *  spreadsheet
    */
   async getData() : Promise<Result<[string, string][]>> {
-    //TODO
-    return okResult([]);
+    try {
+      const collection=this.cellInfo
+      const docCollection= await collection.find({}).toArray();
+      const docData :[string,string][]= docCollection.map((d) => [d.cellId, d.expr]);
+      return okResult(docData);
+    } catch (error) {
+      return errResult('DB', error);
+    }
   }
 
 }
 
-
+const CELL_COLLECTION='cells'
 
 

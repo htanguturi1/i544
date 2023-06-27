@@ -60,7 +60,11 @@ describe('spreadsheet DAO', () => {
   });
 
   it('must clear spreadsheet', async () => {
-    //TODO
+    const clearResult = await dao.clear();
+    assert(clearResult.isOk === true);
+    const getDataResult = await dao.getData();
+    assert(getDataResult.isOk === true);
+    expect(getDataResult.val).to.deep.equal([]);
   });
   
   it('must remove cells from spreadsheet', async () => {
