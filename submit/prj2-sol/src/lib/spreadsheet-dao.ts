@@ -45,8 +45,8 @@ export class SpreadsheetDao {
       params.dbUrl=dbUrl
       params.ssName = ssName;
       return okResult(new SpreadsheetDao(params));
-  }catch (error) {
-    return errResult(error.message, 'DB');
+  }catch (e) {
+    return errResult(e.message, 'DB');
     }
   
   }
@@ -77,8 +77,8 @@ export class SpreadsheetDao {
     try {
       const collection =this.cellInfo
       await collection.insertOne({cellId,expr})
-    } catch (error) {
-      return errResult('DB', error);
+    } catch (e) {
+      return errResult(e.message, 'DB');
     }
     return okResult(undefined);
   }
@@ -104,8 +104,8 @@ export class SpreadsheetDao {
     
       await this.cellInfo.deleteMany({});
       return okResult(undefined);
-    } catch (error) {
-      return errResult('DB', error);
+    } catch (e) {
+      return errResult(e.message, 'DB');
     }
   }
 
@@ -131,8 +131,8 @@ export class SpreadsheetDao {
       const docCollection= await collection.find({}).toArray();
       const docData :[string,string][]= docCollection.map((d) => [d.cellId, d.expr]);
       return okResult(docData);
-    } catch (error) {
-      return errResult('DB', error);
+    } catch (e) {
+      return errResult(e.message, 'DB');
     }
   }
 

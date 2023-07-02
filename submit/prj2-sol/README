@@ -3,4 +3,6 @@ B-Number:	B00982113
 Email:		htanguturi@binghamton.edu
 
 
-
+This project implements typescript and mongoDB concpets.
+In this project we have implemented 57 testcases and all are passing .
+we can run the project using the command npm test in this ~/i544/submit/prj2-sol directory
