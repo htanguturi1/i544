@@ -49,120 +49,7 @@ function setupRoutes(app: Express.Application) {
   app.get(`${base}/:ssName`,makeGETSheetCellHandler(app))
 
   
-  function makeGETSheetCellHandler(app: Express.Application) {
-    return async function(req: Express.Request, res: Express.Response) {
-      try {
-        const ROUTE_PARAM1= req.params.ssName
-        const SOME_RESULT = await app.locals.ssServices.dump(ROUTE_PARAM1);
-        if (!SOME_RESULT.isOk) throw SOME_RESULT;
-              res.json(selfResult(req, SOME_RESULT.val));
-             
-      }
-      catch(err) {
-        const mapped = mapResultErrors(err);
-        res.status(mapped.status).json(mapped);
-      }
-    };
-  }
-  function makeLOADSheetCellHandler(app: Express.Application) {
-    return async function(req: Express.Request, res: Express.Response) {
-      try {
-        const ROUTE_PARAM1= req.params.ssName
-        const ROUTE_PARAM2= req.body
-        const SOME_RESULT = await app.locals.ssServices.load(ROUTE_PARAM1,ROUTE_PARAM2);
-              
-        if (!SOME_RESULT.isOk) throw SOME_RESULT;
-              res.json(selfResult(req, SOME_RESULT.val));
-             
-      }
-      catch(err) {
-        const mapped = mapResultErrors(err);
-        res.status(mapped.status).json(mapped);
-      }
-    };
-  }
-  function makeDELETESheetCellHandler(app: Express.Application) {
-    return async function(req: Express.Request, res: Express.Response) {
-      try {
-        const ROUTE_PARAM1= req.params.ssName
-      
-        const SOME_RESULT = await app.locals.ssServices.clear(ROUTE_PARAM1);
-              
-        if (!SOME_RESULT.isOk) throw SOME_RESULT;
-              res.json(selfResult(req, SOME_RESULT.val));
-             
-      }
-      catch(err) {
-        const mapped = mapResultErrors(err);
-        res.status(mapped.status).json(mapped);
-      }
-    };
-  }
-  function makeDELETECellHandler(app: Express.Application) {
-    return async function(req: Express.Request, res: Express.Response) {
-      try {
-        const ROUTE_PARAM1= req.params.ssName
-        const  ROUTE_PARAM2=req.params.cellId
   
-        const SOME_RESULT = await app.locals.ssServices.remove(ROUTE_PARAM1, ROUTE_PARAM2);
-              
-        if (!SOME_RESULT.isOk) throw SOME_RESULT;
-              res.json(selfResult(req, SOME_RESULT.val));
-             
-      }
-      catch(err) {
-        const mapped = mapResultErrors(err);
-        res.status(mapped.status).json(mapped);
-      }
-    };
-  }
-  function makeGETCellHandler(app: Express.Application) {
-    return async function(req: Express.Request, res: Express.Response) {
-      try {
-        const ROUTE_PARAM1= req.params.ssName
-        const  ROUTE_PARAM2=req.params.cellId
-  
-        const SOME_RESULT = await app.locals.ssServices.query(ROUTE_PARAM1, ROUTE_PARAM2);
-              
-        if (!SOME_RESULT.isOk) throw SOME_RESULT;
-              res.json(selfResult(req, SOME_RESULT.val));
-             
-      }
-      catch(err) {
-        const mapped = mapResultErrors(err);
-        res.status(mapped.status).json(mapped);
-      }
-    };
-  }
-  function makeSETCOPYCellHandler(app: Express.Application) {
-    return async function(req: Express.Request, res: Express.Response) {
-      try {
-        const ROUTE_PARAM1= req.params.ssName
-        const  ROUTE_PARAM2=req.params.cellId
-        if ((!req.query.expr && !req.query.srcCellId) || (req.query.expr && req.query.srcCellId)) {
-          const error = errResult('Missing query parameters or have both parameters.', { code: 'BAD_REQ' });
-          throw error;
-        }
-       if(req.query.expr){
-            const SOME_RESULT = await app.locals.ssServices.evaluate(ROUTE_PARAM1, ROUTE_PARAM2,req.query.expr);
-          
-          if (!SOME_RESULT.isOk) throw SOME_RESULT;
-                res.json(selfResult(req, SOME_RESULT.val));
-         }
-          else if(req.query.srcCellId){
-            const SOME_RESULT = await app.locals.ssServices.copy(ROUTE_PARAM1, ROUTE_PARAM2,req.query.srcCellId);
-          
-            if (!SOME_RESULT.isOk) throw SOME_RESULT;
-                  res.json(selfResult(req, SOME_RESULT.val));
-                
-           }
-        }
-      catch(err) {
-        const mapped = mapResultErrors(err);
-        res.status(mapped.status).json(mapped);
-      }
-    };
-  }
   
   //routes for entire spreadsheets
   //TODO
@@ -195,11 +82,124 @@ function setupRoutes(app: Express.Application) {
 
 /****************** Handlers for Spreadsheet Cells *********************/
 
-//TODO
+
+function makeDELETECellHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const ROUTE_PARAM1= req.params.ssName
+      const  ROUTE_PARAM2=req.params.cellId
+
+      const SOME_RESULT = await app.locals.ssServices.remove(ROUTE_PARAM1, ROUTE_PARAM2);
+            
+      if (!SOME_RESULT.isOk) throw SOME_RESULT;
+            res.json(selfResult(req, SOME_RESULT.val));
+           
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+function makeGETCellHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const ROUTE_PARAM1= req.params.ssName
+      const  ROUTE_PARAM2=req.params.cellId
+
+      const SOME_RESULT = await app.locals.ssServices.query(ROUTE_PARAM1, ROUTE_PARAM2);
+            
+      if (!SOME_RESULT.isOk) throw SOME_RESULT;
+            res.json(selfResult(req, SOME_RESULT.val));
+           
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+function makeSETCOPYCellHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const ROUTE_PARAM1= req.params.ssName
+      const  ROUTE_PARAM2=req.params.cellId
+      if ((!req.query.expr && !req.query.srcCellId) || (req.query.expr && req.query.srcCellId)) {
+        const error = errResult('Missing query parameters or have both parameters.', { code: 'BAD_REQ' });
+        throw error;
+      }
+     if(req.query.expr){
+          const SOME_RESULT = await app.locals.ssServices.evaluate(ROUTE_PARAM1, ROUTE_PARAM2,req.query.expr);
+        
+        if (!SOME_RESULT.isOk) throw SOME_RESULT;
+              res.json(selfResult(req, SOME_RESULT.val));
+       }
+        else if(req.query.srcCellId){
+          const SOME_RESULT = await app.locals.ssServices.copy(ROUTE_PARAM1, ROUTE_PARAM2,req.query.srcCellId);
+        
+          if (!SOME_RESULT.isOk) throw SOME_RESULT;
+                res.json(selfResult(req, SOME_RESULT.val));
+              
+         }
+      }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
 
 /**************** Handlers for Complete Spreadsheets *******************/
 
-//TODO
+function makeGETSheetCellHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const ROUTE_PARAM1= req.params.ssName
+      const SOME_RESULT = await app.locals.ssServices.dump(ROUTE_PARAM1);
+      if (!SOME_RESULT.isOk) throw SOME_RESULT;
+            res.json(selfResult(req, SOME_RESULT.val));
+           
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+function makeLOADSheetCellHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const ROUTE_PARAM1= req.params.ssName
+      const ROUTE_PARAM2= req.body
+      const SOME_RESULT = await app.locals.ssServices.load(ROUTE_PARAM1,ROUTE_PARAM2);
+            
+      if (!SOME_RESULT.isOk) throw SOME_RESULT;
+            res.json(selfResult(req, SOME_RESULT.val));
+           
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+function makeDELETESheetCellHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const ROUTE_PARAM1= req.params.ssName
+    
+      const SOME_RESULT = await app.locals.ssServices.clear(ROUTE_PARAM1);
+            
+      if (!SOME_RESULT.isOk) throw SOME_RESULT;
+            res.json(selfResult(req, SOME_RESULT.val));
+           
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
 
 /*************************** Generic Handlers **************************/
 

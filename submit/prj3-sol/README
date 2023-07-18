@@ -2,3 +2,6 @@ Name:		Hrishikesh Tanguturi
 B-Number:	B00982113
 Email:		htanguturi@binghamton.edu
 
+This project implements Express concpets.
+In this project we have implemented 18 testcases and all are passing .
+we can run the project using the command npm test in this ~/i544/submit/prj3-sol directory
