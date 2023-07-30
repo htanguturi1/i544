@@ -91,24 +91,28 @@ class Spreadsheet {
     else if (trimmedContent === '') 
     {
       const response = await this.ws.remove(this.ssName, target.id);
-      if (response.isOk) {
+      if (response.isOk)
+      {
         const updates = response.val;
-        for (const [cellId, value] of Object.entries(updates)) {
+        for (const [cellId, value] of Object.entries(updates))
+        {
           const destinationCellExpressionResponse = await this.ws.query(this.ssName, cellId);
           const cellElement = document.getElementById(cellId);
-         if(cellElement )
-         {
-          if(destinationCellExpressionResponse.isOk)
+          if(cellId != this.focusedCellId)
           {
-            cellElement.dataset.expr=destinationCellExpressionResponse.val.expr
-            cellElement.dataset.value=value.toString()
-            cellElement.textContent=value.toString()
+           if(cellElement)
+            {
+              if(destinationCellExpressionResponse.isOk)
+              {
+                cellElement.dataset.expr=destinationCellExpressionResponse.val.expr
+                cellElement.dataset.value=value.toString()
+                cellElement.textContent=value.toString()
+              }
+            }
           }
-        
-         }
         }
         target.setAttribute('data-expr','');
-        target.setAttribute('data-value','0');
+        target.setAttribute('data-value','');
       } 
       else 
       {
@@ -119,27 +123,48 @@ class Spreadsheet {
     } 
     else {
       const response = await this.ws.evaluate(this.ssName, target.id, trimmedContent);
-      if (response.isOk) {
+      if (response.isOk) 
+      {
         const updates = response.val;
-        for (const [cellId, value] of Object.entries(updates)) {
+        for (const [cellId, value] of Object.entries(updates)) 
+        {
           const cellElement = document.getElementById(cellId);
-          if (cellElement) {
-            if(this.focusedCellId && cellElement.id !== this.focusedCellId){
-              cellElement.dataset.value = value.toString();
+          if(cellElement)
+          {
+            cellElement.dataset.value = value.toString();
+            target.dataset.expr = trimmedContent;
+            if (cellId != this.focusedCellId) 
+            {
               cellElement.textContent = value.toString();
             }
-            target.dataset.expr = trimmedContent;
+            else
+            {
+              const focusExpr = cellElement.dataset.expr
+              if(focusExpr)
+              {
+                cellElement.textContent = focusExpr
+              }
+            }
           }
         }
-      } else {
-        console.error('Error evaluating cell formula:', response.errors);
+      } 
+      else 
+      {
+        console.error('Error evaluating cell formula:', response.errors, storedValue, storedExpr);
         this.errors.display(response.errors)
-      if(storedValue){
-        target.setAttribute('data-value', storedValue.toString());
-        target.dataset.expr = storedExpr;
-         target.textContent = storedValue.toString()
-      }
- 
+        if(storedValue)
+        {
+          target.setAttribute('data-value', storedValue.toString());
+          target.dataset.expr = storedExpr;
+          target.textContent = storedValue.toString()
+        }
+        else
+        {
+          target.dataset.value = ''
+          target.dataset.expr = ''
+          target.textContent = ''
+        }
+        console.log("eeewww")
       }
     }
     this.focusedCellId = null;
@@ -165,32 +190,43 @@ class Spreadsheet {
     else
     {
       const srcEl = document.getElementById(this.copycellId)
-      if(srcEl){
-      srcEl.classList.remove('is-copy-source')}
+      if(srcEl)
+      {
+        srcEl.classList.remove('is-copy-source')
+      }
     }
     const response = await this.ws.copy(this.ssName, destinationCellId,this.copycellId );
     if (response.isOk) {
       const updates = response.val;
-        for (const [cellId, value] of Object.entries(updates)) {
+        for (const [cellId, value] of Object.entries(updates)) 
+        {
           const cellElement = document.getElementById(cellId);
           const destinationCellExpressionResponse = await this.ws.query(this.ssName, cellId);
-          if (destinationCellExpressionResponse.isOk) {
+          if (destinationCellExpressionResponse.isOk) 
+          {
             const destinationCellExpression = destinationCellExpressionResponse.val.expr;
-                if (cellElement) {
+                if (cellElement)
+                {
                   cellElement.setAttribute('data-value', value.toString());
                   cellElement.dataset.expr= destinationCellExpression;
-                  if(cellElement===destinationCell){
-                    cellElement.textContent=destinationCellExpression
+                  if(cellElement===destinationCell)
+                  {
+                    cellElement.textContent = destinationCellExpression
                   }
-                  else{
-                    cellElement.textContent=value.toString()
+                  else
+                  {
+                    cellElement.textContent = value.toString()
                   }
                 }
           }
+        
         }
         
-    } else {
+    } 
+    else 
+    {
       console.error('Error copying content:', response.errors);
+      this.errors.display(response.errors)
     }
     this.focusedCellId = null;
   };
