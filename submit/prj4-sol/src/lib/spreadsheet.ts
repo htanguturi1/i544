@@ -1,6 +1,6 @@
 import SpreadsheetWs from './ss-ws.js';
 
-import { Result, okResult, errResult } from 'cs544-js-utils';
+import { Result, okResult, errResult, OkResult } from 'cs544-js-utils';
 
 import { Errors, makeElement } from './utils.js';
 
@@ -19,14 +19,13 @@ class Spreadsheet {
   private focusedCellId: string | null;
   private copycellId: string | null
   //TODO: add more instance variables
-  
+
   constructor(ws: SpreadsheetWs, ssName: string) {
     this.ws = ws; this.ssName = ssName;
     this.errors = new Errors();
     this.makeEmptySS();
     this.addListeners();
     this.focusedCellId = null;
-    //TODO: initialize added instance variables
   }
 
   static async make(ws: SpreadsheetWs, ssName: string) {
@@ -44,192 +43,128 @@ class Spreadsheet {
         if (response.isOk) {
           const cellElements = document.querySelectorAll('.cell');
           cellElements.forEach((cell) => {
-            cell.textContent = ''; // Clear text content
-            cell.removeAttribute('data-expr'); // Remove data-expr attribute
-            cell.removeAttribute('data-value'); // Remove data-value attribute
-          });
-          cellElements.forEach((cell) => {
+            cell.textContent = '';
+            cell.removeAttribute('data-expr');
+            cell.removeAttribute('data-value');
             cell.classList.remove('is-copy-source');
           });
-        } else {
-          // Handle the case when there is an error clearing the spreadsheet
-          console.error('Error clearing the spreadsheet:', response.errors);
+
         }
       });
     }
- 
-     // Handler for focusin event on a .cell element
-     const cellElements = document.querySelectorAll('.cell');
-     cellElements.forEach((cell) => {
-       cell.addEventListener('focusin', this.focusCell);
-       cell.addEventListener('focusout', this.blurCell);
-       cell.addEventListener('copy', this.copyCell);
-       cell.addEventListener('paste', this.pasteCell);
-     });
+    const cellElements = document.querySelectorAll('.cell');
+    cellElements.forEach((cell) => {
+      cell.addEventListener('focusin', this.focusCell);
+      cell.addEventListener('focusout', this.blurCell);
+      cell.addEventListener('copy', this.copyCell);
+      cell.addEventListener('paste', this.pasteCell);
+    });
   }
 
   private readonly focusCell = (ev: Event) => {
-    console.log('entered focus');
     const target = ev.target as HTMLElement;
-    this.focusedCellId = target.id; // Store the ID of the currently focused cell
+    this.focusedCellId = target.id;
     target.textContent = target.dataset.expr || '';
     this.errors.clear()
-    
   };
 
   private readonly blurCell = async (ev: Event) => {
     const target = ev.target as HTMLElement;
-    const storedValue= target.dataset.value
-    const storedExpr=target.dataset.expr
-    console.log('blur caused cell is :'+target.id)
+    const storedValue = target.dataset.value
+    const storedExpr = target.dataset.expr
     const trimmedContent = target.textContent?.trim();
-
-    if (trimmedContent === undefined || trimmedContent === null) {
-      return;
-    }
-
-    else if (trimmedContent === '') 
-    {
+    if (trimmedContent === '') {
       const response = await this.ws.remove(this.ssName, target.id);
-      if (response.isOk)
-      {
-        const updates = response.val;
-        for (const [cellId, value] of Object.entries(updates))
-        {
-          const destinationCellExpressionResponse = await this.ws.query(this.ssName, cellId);
-          const cellElement = document.getElementById(cellId);
-          if(cellId != this.focusedCellId)
-          {
-           if(cellElement)
-            {
-              if(destinationCellExpressionResponse.isOk)
-              {
-                cellElement.dataset.expr=destinationCellExpressionResponse.val.expr
-                cellElement.dataset.value=value.toString()
-                cellElement.textContent=value.toString()
-              }
-            }
-          }
-        }
-        target.setAttribute('data-expr','');
-        target.setAttribute('data-value','');
-      } 
-      else 
-      {
-        console.error('Error removing cell formula:', response.errors);
-        // Restore the content to expression since the removal failed
+      if (response.isOk) {
+        this.evaluationLogic(response.val, target, trimmedContent);
+      }
+      else {
         target.textContent = target.getAttribute('data-expr') || '';
       }
-    } 
+    }
+    else if (trimmedContent === undefined || trimmedContent === null) {
+      return;
+    }
     else {
       const response = await this.ws.evaluate(this.ssName, target.id, trimmedContent);
-      if (response.isOk) 
-      {
-        const updates = response.val;
-        for (const [cellId, value] of Object.entries(updates)) 
-        {
-          const cellElement = document.getElementById(cellId);
-          if(cellElement)
-          {
-            cellElement.dataset.value = value.toString();
-            target.dataset.expr = trimmedContent;
-            if (cellId != this.focusedCellId) 
-            {
-              cellElement.textContent = value.toString();
-            }
-            else
-            {
-              const focusExpr = cellElement.dataset.expr
-              if(focusExpr)
-              {
-                cellElement.textContent = focusExpr
-              }
-            }
-          }
-        }
-      } 
-      else 
-      {
-        console.error('Error evaluating cell formula:', response.errors, storedValue, storedExpr);
+      if (response.isOk) {
+        this.evaluationLogic(response.val, target, trimmedContent);
+      }
+      else {
         this.errors.display(response.errors)
-        if(storedValue)
-        {
-          target.setAttribute('data-value', storedValue.toString());
+        if (storedValue) {
+          target.dataset.value = storedValue.toString();
           target.dataset.expr = storedExpr;
           target.textContent = storedValue.toString()
         }
-        else
-        {
+        else {
           target.dataset.value = ''
           target.dataset.expr = ''
           target.textContent = ''
         }
-        console.log("eeewww")
       }
     }
     this.focusedCellId = null;
   };
-  
+
   /** listener for a copy event on a spreadsheet data cell */
   private readonly copyCell = (ev: Event) => {
-    console.log('Copy event triggered.');
     const sourceCell = ev.target as HTMLElement;
     this.copycellId = sourceCell.id;
-    console.log(this.copycellId);
     sourceCell.classList.add('is-copy-source');
   };
 
   /** listener for a paste event on a spreadsheet data cell */
   private readonly pasteCell = async (ev: Event) => {
     ev.preventDefault()
-    console.log('paste event triggered.');
     const destinationCell = ev.target as HTMLElement;
     const destinationCellId = destinationCell.id;
-    
-    if (!this.copycellId) return;
-    else
-    {
+    if (this.copycellId) {
       const srcEl = document.getElementById(this.copycellId)
-      if(srcEl)
-      {
+      if (srcEl) {
         srcEl.classList.remove('is-copy-source')
       }
     }
-    const response = await this.ws.copy(this.ssName, destinationCellId,this.copycellId );
+    else return
+    const response = await this.ws.copy(this.ssName, destinationCellId, this.copycellId);
     if (response.isOk) {
       const updates = response.val;
-        for (const [cellId, value] of Object.entries(updates)) 
-        {
-          const cellElement = document.getElementById(cellId);
-          const destinationCellExpressionResponse = await this.ws.query(this.ssName, cellId);
-          if (destinationCellExpressionResponse.isOk) 
-          {
-            const destinationCellExpression = destinationCellExpressionResponse.val.expr;
-                if (cellElement)
-                {
-                  cellElement.setAttribute('data-value', value.toString());
-                  cellElement.dataset.expr= destinationCellExpression;
-                  if(cellElement===destinationCell)
-                  {
-                    cellElement.textContent = destinationCellExpression
-                  }
-                  else
-                  {
-                    cellElement.textContent = value.toString()
-                  }
-                }
+      for (const [cellId, value] of Object.entries(updates)) {
+        const cellElement = document.getElementById(cellId);
+        const destCellExprResponse = await this.ws.query(this.ssName, cellId);
+        if (destCellExprResponse.isOk) {
+          const destinationCellExpression = destCellExprResponse.val.expr;
+          if (cellElement) {
+            cellElement.dataset.value = value.toString();
+            cellElement.dataset.expr = destinationCellExpression;
+            cellElement === destinationCell ? cellElement.textContent = destinationCellExpression : cellElement.textContent = value.toString()
           }
-        
         }
-        
-    } 
-    else 
-    {
-      console.error('Error copying content:', response.errors);
+
+      }
+
+    }
+    else {
+      // console.error('Error copying content:', response.errors);
       this.errors.display(response.errors)
     }
     this.focusedCellId = null;
   };
+
+  private evaluationLogic(response: Object, target: HTMLElement, trimmedContent: string) {
+    const updates = response;
+    for (const [cellId, value] of Object.entries(updates)) {
+      const cellElement = document.getElementById(cellId);
+      if (cellId != this.focusedCellId) {
+        if (cellElement) {
+          cellElement.dataset.value = value.toString();
+          target.dataset.expr = trimmedContent;
+          cellElement.textContent = value.toString();
+
+        }
+      }
+    }
+  }
 
   /** Replace entire spreadsheet with that from the web services.
    *  Specifically, for each active cell set its data-value and 
@@ -238,34 +173,32 @@ class Spreadsheet {
    */
   /** load initial spreadsheet data into DOM */
   private async load() {
-   const resultdata =await (this.ws.dumpWithValues(this.ssName)) 
-   console.log(resultdata)
-   if (resultdata.isOk) {
-    const data = resultdata.val;
-    for (const [cellId, expr, value] of data) {
-      const cellElement = document.getElementById(cellId);
-      if (cellElement) {
-        cellElement.dataset.expr = expr;
-        cellElement.dataset.value = value.toString()
-        cellElement.textContent = value.toString();
-        console.log(cellElement)
+    const resultdata = await (this.ws.dumpWithValues(this.ssName))
+    if (resultdata.isOk) {
+      const data = resultdata.val;
+      for (const [cellId, expr, value] of data) {
+        const cellElement = document.getElementById(cellId);
+        if (cellElement) {
+          cellElement.dataset.expr = expr;
+          cellElement.dataset.value = value.toString()
+          cellElement.textContent = value.toString();
+        }
       }
     }
+    else {
+      const errors = resultdata.errors;
+      console.error('Error loading data:', errors);
+    }
   }
-   else {
-    const errors = resultdata.errors;
-    console.error('Error loading data:', errors);
-  }
-}
 
-  
+
   private makeEmptySS() {
     const ssDiv = document.querySelector('#ss')!;
     ssDiv.innerHTML = '';
     const ssTable = makeElement('table');
     const header = makeElement('tr');
     const clearCell = makeElement('td');
-    const clear = makeElement('button', {id: 'clear', type: 'button'}, 'Clear');
+    const clear = makeElement('button', { id: 'clear', type: 'button' }, 'Clear');
     clearCell.append(clear);
     header.append(clearCell);
     const A = 'A'.charCodeAt(0);
@@ -278,11 +211,11 @@ class Spreadsheet {
       row.append(makeElement('th', {}, (i + 1).toString()));
       const a = 'a'.charCodeAt(0);
       for (let j = 0; j < N_COLS; j++) {
-	const colId = String.fromCharCode(a + j);
-	const id = colId + (i + 1);
-	const cell =
-	  makeElement('td', {id, class: 'cell', contentEditable: 'true'});
-	row.append(cell);
+        const colId = String.fromCharCode(a + j);
+        const id = colId + (i + 1);
+        const cell =
+          makeElement('td', { id, class: 'cell', contentEditable: 'true' });
+        row.append(cell);
       }
       ssTable.append(row);
     }

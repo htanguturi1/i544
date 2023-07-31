@@ -3,4 +3,7 @@ B-Number:	B00982113
 Email:		htanguturi@binghamton.edu
 
 
+This project is GUI implementation of the spreadsheet 
+we can run the project using ' npm run watch ' command and we can start the server using npm start then the server will start at 
+http://localhost:2346
 
